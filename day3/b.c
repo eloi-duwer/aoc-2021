@@ -2,49 +2,54 @@
 #include <stdlib.h>
 #include <string.h>
 
-#define NB_NB 12
-#define LEN_NB 5
+#define NB_NB 1000
+#define LEN_NB 12
 
 unsigned int numbers[NB_NB] = {0};
 
-void calc_sums(unsigned int *arr, int *summs, size_t arr_len) {
+int calc_sum(unsigned int *arr, size_t arr_len, int column) {
     int i = 0;
-    memset(summs, 0, sizeof(int) * arr_len);
+	int ret = 0;
     while (i < arr_len) {
-        int k = 0;
-        while (k < LEN_NB) {
-            printf("%d %d %d %d\n", arr[k], arr[k] & (0x1 << (LEN_NB - 1 - k)), k, i);
-            if (arr[k] & (0x1 << (LEN_NB - 1 - k)))
-                summs[i]++;
-            else
-                summs[i]--;
-            k++;
-        }
-        i++;
+		if (arr[i] & (0x1 << (LEN_NB - 1 - column)))
+			ret++;
+		else
+			ret--;
+		i++;
     }
+	return (ret);
 }
 
 unsigned int get_report(int invert) {
     int i = 0;
     int cp_numbers[NB_NB];
-    int summs[NB_NB];
     memcpy(cp_numbers, numbers, sizeof(unsigned int) * NB_NB);
     int cp_numbers_size = NB_NB;
     int buffers[NB_NB] = {0};
     while (i < LEN_NB) {
         int j = 0;
         int k = 0;
-        calc_sums(cp_numbers, summs, cp_numbers_size);
+        int sum_column = calc_sum(cp_numbers, cp_numbers_size, i);
+		printf("Sum col %d %d\n", i, sum_column);
         while (k < cp_numbers_size) {
-            if (!invert && cp_numbers[k] & 1 << (LEN_NB - 1 - i) == summs[i] >= 0
-              || invert && cp_numbers[k] & 1 << (LEN_NB - 1 - i) == summs[i] <= 0) {
-                buffers[j] = cp_numbers[k];
-                j++;
-            }
+			if (invert == 0) {
+				if ((cp_numbers[k] >> (LEN_NB - 1 - i) & 0x1) == (sum_column >= 0)) {
+					buffers[j] = cp_numbers[k];
+                	j++;
+				}
+			} else if (invert != 0) {
+				// printf("i %d k %d nb %d sum %d %d\n", i, k, cp_numbers[k], sum_column, (cp_numbers[k] >> (LEN_NB - 1 - i) & 0x1));
+				if ((cp_numbers[k] >> (LEN_NB - 1 - i) & 0x1) == (sum_column < 0)) {
+					buffers[j] = cp_numbers[k];
+                	j++;
+				}
+			}
             k++;
         }
-        if (j == 0)
+		printf("End loop %d\n", j);
+        if (j == 1) {
             return buffers[0];        
+		}
         cp_numbers_size = j;
         memcpy(cp_numbers, buffers, sizeof(unsigned int) * cp_numbers_size);
         i++;
@@ -53,7 +58,7 @@ unsigned int get_report(int invert) {
 }
 
 int main() {
-    FILE *fd = fopen("test", "r");
+    FILE *fd = fopen("input", "r");
 
     char *line = NULL;
     size_t size = 0;
@@ -68,5 +73,5 @@ int main() {
         }
         n++;
     }
-    printf("%u\n", get_report(0));
+    printf("%u\n", get_report(0) * get_report(1));
 }
